@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import VideoControls from "./VideoControls";
 import InteractiveOverlay from "./InteractiveOverlay";
+import ButtonPlacementControls from "./ButtonPlacementControls";
 
 interface VideoPlayerProps {
   src?: string;
@@ -16,31 +17,16 @@ interface VideoPlayerProps {
     };
     onClick: () => void;
   }>;
+  onAddButton?: (timestamp: number, position: { x: number; y: number }) => void;
+  isEditing?: boolean;
 }
 
 const VideoPlayer = ({
   src = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
   autoPlay = false,
-  buttons = [
-    {
-      id: "1",
-      timestamp: 5,
-      previewUrl:
-        "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=200&h=120&fit=crop",
-      title: "Path A: The Adventure Begins",
-      position: { x: 25, y: 50 },
-      onClick: () => console.log("Clicked Path A"),
-    },
-    {
-      id: "2",
-      timestamp: 5,
-      previewUrl:
-        "https://images.unsplash.com/photo-1611162618071-b39a2ec055fb?w=200&h=120&fit=crop",
-      title: "Path B: The Mystery Unfolds",
-      position: { x: 75, y: 50 },
-      onClick: () => console.log("Clicked Path B"),
-    },
-  ],
+  buttons = [],
+  onAddButton = () => {},
+  isEditing = false,
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -127,35 +113,52 @@ const VideoPlayer = ({
     }
   };
 
+  const [buttonPosition, setButtonPosition] = useState({ x: 50, y: 50 });
+
+  const handleAddButton = () => {
+    onAddButton(currentTime, buttonPosition);
+  };
+
   return (
-    <div
-      ref={containerRef}
-      className="relative w-full aspect-video bg-black overflow-hidden"
-    >
-      <video
-        ref={videoRef}
-        src={src}
-        className="w-full h-full"
-        onClick={handlePlayPause}
-      />
+    <div className="space-y-4">
+      <div
+        ref={containerRef}
+        className="relative w-full aspect-video bg-black overflow-hidden"
+      >
+        <video
+          ref={videoRef}
+          src={src}
+          className="w-full h-full"
+          onClick={handlePlayPause}
+        />
 
-      <InteractiveOverlay buttons={buttons} currentTime={currentTime} />
+        <InteractiveOverlay buttons={buttons} currentTime={currentTime} />
 
-      <VideoControls
-        isPlaying={isPlaying}
-        currentTime={currentTime}
-        duration={duration}
-        volume={volume}
-        isFullscreen={isFullscreen}
-        isMuted={isMuted}
-        onPlayPause={handlePlayPause}
-        onVolumeChange={handleVolumeChange}
-        onMuteToggle={handleMuteToggle}
-        onSeek={handleSeek}
-        onFullscreenToggle={handleFullscreenToggle}
-        onSkipForward={handleSkipForward}
-        onSkipBackward={handleSkipBackward}
-      />
+        <VideoControls
+          isPlaying={isPlaying}
+          currentTime={currentTime}
+          duration={duration}
+          volume={volume}
+          isFullscreen={isFullscreen}
+          isMuted={isMuted}
+          onPlayPause={handlePlayPause}
+          onVolumeChange={handleVolumeChange}
+          onMuteToggle={handleMuteToggle}
+          onSeek={handleSeek}
+          onFullscreenToggle={handleFullscreenToggle}
+          onSkipForward={handleSkipForward}
+          onSkipBackward={handleSkipBackward}
+        />
+      </div>
+
+      {isEditing && (
+        <ButtonPlacementControls
+          position={buttonPosition}
+          onPositionChange={setButtonPosition}
+          onAddButton={handleAddButton}
+          currentTime={currentTime}
+        />
+      )}
     </div>
   );
 };

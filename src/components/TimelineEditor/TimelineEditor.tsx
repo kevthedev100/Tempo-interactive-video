@@ -2,29 +2,44 @@ import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import TimestampMarker from "./TimestampMarker";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Link } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface TimelineEditorProps {
   duration?: number;
   markers?: Array<{
     id: string;
     timestamp: number;
-    linkedVideoId?: string;
+    linkedVideoUrl?: string;
+    buttonTitle?: string;
+    position?: {
+      x: number;
+      y: number;
+    };
   }>;
-  onAddMarker?: (timestamp: number) => void;
+  onAddMarker?: (markerData: {
+    timestamp: number;
+    linkedVideoUrl: string;
+    buttonTitle: string;
+    position: { x: number; y: number };
+  }) => void;
   onUpdateMarker?: (id: string, timestamp: number) => void;
   onDeleteMarker?: (id: string) => void;
   onSelectMarker?: (id: string) => void;
 }
 
 const TimelineEditor = ({
-  duration = 300, // 5 minutes default duration
-  markers = [
-    { id: "1", timestamp: 30, linkedVideoId: "video-1" },
-    { id: "2", timestamp: 120, linkedVideoId: "video-2" },
-    { id: "3", timestamp: 240, linkedVideoId: "video-3" },
-  ],
+  duration = 300,
+  markers = [],
   onAddMarker = () => {},
   onUpdateMarker = () => {},
   onDeleteMarker = () => {},
@@ -32,6 +47,13 @@ const TimelineEditor = ({
 }: TimelineEditorProps) => {
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const [draggingMarkerId, setDraggingMarkerId] = useState<string | null>(null);
+  const [isAddingMarker, setIsAddingMarker] = useState(false);
+  const [newMarkerData, setNewMarkerData] = useState({
+    timestamp: duration / 2,
+    linkedVideoUrl: "",
+    buttonTitle: "",
+    position: { x: 50, y: 50 },
+  });
 
   const handleMarkerDragStart = (id: string) => {
     setDraggingMarkerId(id);
@@ -41,9 +63,22 @@ const TimelineEditor = ({
     setDraggingMarkerId(null);
   };
 
-  const handleAddMarker = () => {
-    onAddMarker(duration / 2); // Add marker at middle of timeline by default
+  const handleAddMarkerClick = () => {
+    setIsAddingMarker(true);
   };
+
+  const handleAddMarkerSubmit = () => {
+    onAddMarker(newMarkerData);
+    setIsAddingMarker(false);
+    setNewMarkerData({
+      timestamp: duration / 2,
+      linkedVideoUrl: "",
+      buttonTitle: "",
+      position: { x: 50, y: 50 },
+    });
+  };
+
+  const selectedMarker = markers.find((m) => m.id === selectedMarkerId);
 
   return (
     <Card className="w-full p-6 bg-background">
@@ -52,9 +87,9 @@ const TimelineEditor = ({
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Timeline Editor</h3>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleAddMarker}>
+            <Button variant="outline" size="sm" onClick={handleAddMarkerClick}>
               <Plus className="w-4 h-4 mr-2" />
-              Add Marker
+              Add Interactive Button
             </Button>
             {selectedMarkerId && (
               <Button
@@ -66,7 +101,7 @@ const TimelineEditor = ({
                 }}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Delete Marker
+                Delete Button
               </Button>
             )}
           </div>
@@ -92,6 +127,7 @@ const TimelineEditor = ({
                 timestamp={marker.timestamp}
                 position={(marker.timestamp / duration) * 100}
                 isDragging={draggingMarkerId === marker.id}
+                isSelected={selectedMarkerId === marker.id}
                 onDragStart={() => handleMarkerDragStart(marker.id)}
                 onDragEnd={handleMarkerDragEnd}
                 onClick={() => {
@@ -115,18 +151,136 @@ const TimelineEditor = ({
         </div>
 
         {/* Selected marker info */}
-        {selectedMarkerId && (
-          <div className="p-4 bg-muted rounded-lg">
-            <p className="text-sm font-medium">
-              Selected Marker:{" "}
-              {markers
-                .find((m) => m.id === selectedMarkerId)
-                ?.timestamp.toFixed(2)}
-              s
-            </p>
+        {selectedMarker && (
+          <div className="p-4 bg-muted rounded-lg space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium">Selected Button Details</h4>
+              <p className="text-sm text-muted-foreground">
+                At {selectedMarker.timestamp.toFixed(2)}s
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Linked Video</Label>
+                <p className="text-sm text-muted-foreground">
+                  {selectedMarker.linkedVideoUrl || "No video linked"}
+                </p>
+              </div>
+              <div>
+                <Label>Button Title</Label>
+                <p className="text-sm text-muted-foreground">
+                  {selectedMarker.buttonTitle || "No title set"}
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>
+
+      {/* Add Marker Dialog */}
+      <Dialog open={isAddingMarker} onOpenChange={setIsAddingMarker}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Interactive Button</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="timestamp">Timestamp (seconds)</Label>
+              <Input
+                id="timestamp"
+                type="number"
+                min={0}
+                max={duration}
+                value={newMarkerData.timestamp}
+                onChange={(e) =>
+                  setNewMarkerData({
+                    ...newMarkerData,
+                    timestamp: parseFloat(e.target.value),
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="videoUrl">Linked Video URL</Label>
+              <Input
+                id="videoUrl"
+                type="url"
+                placeholder="https://example.com/video.mp4"
+                value={newMarkerData.linkedVideoUrl}
+                onChange={(e) =>
+                  setNewMarkerData({
+                    ...newMarkerData,
+                    linkedVideoUrl: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="buttonTitle">Button Title</Label>
+              <Input
+                id="buttonTitle"
+                placeholder="Continue to next scene..."
+                value={newMarkerData.buttonTitle}
+                onChange={(e) =>
+                  setNewMarkerData({
+                    ...newMarkerData,
+                    buttonTitle: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="positionX">Position X (%)</Label>
+                <Input
+                  id="positionX"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={newMarkerData.position.x}
+                  onChange={(e) =>
+                    setNewMarkerData({
+                      ...newMarkerData,
+                      position: {
+                        ...newMarkerData.position,
+                        x: parseFloat(e.target.value),
+                      },
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="positionY">Position Y (%)</Label>
+                <Input
+                  id="positionY"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={newMarkerData.position.y}
+                  onChange={(e) =>
+                    setNewMarkerData({
+                      ...newMarkerData,
+                      position: {
+                        ...newMarkerData.position,
+                        y: parseFloat(e.target.value),
+                      },
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddingMarker(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddMarkerSubmit}>
+              <Link className="w-4 h-4 mr-2" />
+              Add Interactive Button
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

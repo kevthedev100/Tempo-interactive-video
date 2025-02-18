@@ -1,13 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import VideoPlayer from "./VideoPlayer/VideoPlayer";
 import TimelineEditor from "./TimelineEditor/TimelineEditor";
 
 const Home = () => {
-  const handleVideoNavigation = (videoId: string) => {
-    console.log(`Navigating to video: ${videoId}`);
-  };
+  const [currentVideo, setCurrentVideo] = useState(
+    "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+  );
 
-  const demoButtons = [
+  const [buttons, setButtons] = useState([
     {
       id: "1",
       timestamp: 5,
@@ -15,7 +15,10 @@ const Home = () => {
         "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=200&h=120&fit=crop",
       title: "Path A: The Adventure Begins",
       position: { x: 25, y: 50 },
-      onClick: () => handleVideoNavigation("video-a"),
+      onClick: () =>
+        handleVideoNavigation(
+          "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+        ),
     },
     {
       id: "2",
@@ -24,23 +27,49 @@ const Home = () => {
         "https://images.unsplash.com/photo-1611162618071-b39a2ec055fb?w=200&h=120&fit=crop",
       title: "Path B: The Mystery Unfolds",
       position: { x: 75, y: 50 },
-      onClick: () => handleVideoNavigation("video-b"),
+      onClick: () =>
+        handleVideoNavigation(
+          "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+        ),
     },
-  ];
+  ]);
 
-  const handleAddMarker = (timestamp: number) => {
-    console.log(`Adding marker at timestamp: ${timestamp}`);
+  const handleVideoNavigation = (videoUrl: string) => {
+    setCurrentVideo(videoUrl);
+  };
+
+  const handleAddMarker = (markerData: {
+    timestamp: number;
+    linkedVideoUrl: string;
+    buttonTitle: string;
+    position: { x: number; y: number };
+  }) => {
+    const newButton = {
+      id: `button-${Date.now()}`,
+      timestamp: markerData.timestamp,
+      previewUrl:
+        "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=200&h=120&fit=crop",
+      title: markerData.buttonTitle,
+      position: markerData.position,
+      onClick: () => handleVideoNavigation(markerData.linkedVideoUrl),
+    };
+    setButtons([...buttons, newButton]);
   };
 
   const handleUpdateMarker = (id: string, timestamp: number) => {
-    console.log(`Updating marker ${id} to timestamp: ${timestamp}`);
+    setButtons(
+      buttons.map((button) =>
+        button.id === id ? { ...button, timestamp } : button,
+      ),
+    );
   };
 
   const handleDeleteMarker = (id: string) => {
-    console.log(`Deleting marker: ${id}`);
+    setButtons(buttons.filter((button) => button.id !== id));
   };
 
   const handleSelectMarker = (id: string) => {
+    // This could be used to show additional editing options
     console.log(`Selected marker: ${id}`);
   };
 
@@ -57,9 +86,10 @@ const Home = () => {
             <h2 className="text-2xl font-semibold">Video Player</h2>
             <div className="w-full aspect-video bg-card rounded-lg overflow-hidden shadow-lg">
               <VideoPlayer
-                src="https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-                buttons={demoButtons}
+                src={currentVideo}
+                buttons={buttons}
                 autoPlay={false}
+                isEditing={true}
               />
             </div>
           </section>
@@ -69,11 +99,13 @@ const Home = () => {
             <h2 className="text-2xl font-semibold">Timeline Editor</h2>
             <TimelineEditor
               duration={300}
-              markers={[
-                { id: "1", timestamp: 30, linkedVideoId: "video-1" },
-                { id: "2", timestamp: 120, linkedVideoId: "video-2" },
-                { id: "3", timestamp: 240, linkedVideoId: "video-3" },
-              ]}
+              markers={buttons.map((button) => ({
+                id: button.id,
+                timestamp: button.timestamp,
+                linkedVideoUrl: currentVideo,
+                buttonTitle: button.title,
+                position: button.position,
+              }))}
               onAddMarker={handleAddMarker}
               onUpdateMarker={handleUpdateMarker}
               onDeleteMarker={handleDeleteMarker}
